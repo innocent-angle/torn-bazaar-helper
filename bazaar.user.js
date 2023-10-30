@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cute's Bazaar Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Cute's Bazaar Helper
 // @author       Cute [2068379]
 // @match        https://www.torn.com/bazaar.php*
@@ -118,7 +118,7 @@
 
     async function fill(child) {
         const itemName = child.querySelector("div.title-wrap > div.name-wrap.bold > span.t-overflow").textContent;
-        const itemAmount = child.querySelector("div.title-wrap.relative div.name-wrap.bold span.t-hide");
+        const itemAmount = child.querySelector("div.title-wrap > div.name-wrap.bold > span.t-hide > span:nth-child(2)");
         const itemID = getIDFromName(itemName);
         const value = getTornValueFromName(itemName);
         const bazaar = await getLowestBazaar(itemID, itemName);
@@ -131,7 +131,7 @@
         priceInput.value = bazaar - 1;
 
         if (itemAmount) {
-            qtyInput.value = itemAmount.children[1].textContent;
+            qtyInput.value = itemAmount.textContent;
         } else {
             qtyInput.value = 1;
         }

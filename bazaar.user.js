@@ -6,6 +6,8 @@
 // @author       Cute [2068379]
 // @match        https://www.torn.com/bazaar.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=torn.com
+// @updateURL    https://github.com/innocent-angle/torn-bazaar-helper/raw/main/bazaar.user.js
+// @downloadURL  https://github.com/innocent-angle/torn-bazaar-helper/raw/main/bazaar.user.js
 // @grant        none
 // ==/UserScript==
 

@@ -12,47 +12,50 @@
 // ==/UserScript==
 
 (async() => {
-    let key = localStorage.getItem("CuteToolsBazaarKey");
     let itemData;
     let button;
 
-    const loadInterval = setInterval(() => {
-        if (document.querySelector("div.category-wrap:nth-child(1)") !== null) {
-            clearInterval(loadInterval);
-            main();
-        }
-    }, 100);
-
     function askForKey() {
         const input = prompt("Torn Key");
-        console.log(input.length);
-        if (input.length == 16) {
+        if (input && input.length == 16) {
             return localStorage.setItem("CuteToolsBazaarKey", input) 
         } else {
             return alert("Invalid Key");
         }
     }
 
+    function getKey() {
+        return localStorage.getItem("CuteToolsBazaarKey");
+    }
+
     function addElements() {
         if (button) return;
-        console.log("CuteTools: Creating elements.");
-
-        button = document.createElement("a")
-        button.innerText = "AutoFill";
-        button.className = "linkContainer___X16y4";
-        button.style.color = "#8dba06";
-        button.style.fontWeight = 700;
-        button.style.marginLeft = "5px";
-        button.addEventListener("click", () => {
-            if (key == null) return askForKey();
-            fillAll();
-        })
         
-        document.querySelector(".linksContainer___LiOTN")
-        .prepend(button);
+        const loadInterval = setInterval(() => {
+            if (document.querySelector("#bazaarRoot") !== null) {
+                clearInterval(loadInterval);
+                
+                console.log("CuteTools: Creating elements.");
+
+                button = document.createElement("a")
+                button.innerText = "AutoFill";
+                button.className = "linkContainer___X16y4";
+                button.style.color = "#8dba06";
+                button.style.fontWeight = 700;
+                button.style.marginLeft = "5px";
+                button.addEventListener("click", () => {
+                    if (getKey() == null) return askForKey();
+                    fillAll();
+                })
+                
+                document.querySelector(".titleContainer___QrlWP")
+                .append(button);
+            }
+        }, 100);
     }
 
     function getActiveContainer() {
+        if (!document.querySelector("div.category-wrap:nth-child(1)")) return;
         const itemContainers = document.querySelector("div.category-wrap:nth-child(1)").children;
         for (const c in itemContainers) {
             if (Object.hasOwnProperty.call(itemContainers, c)) {
@@ -64,7 +67,7 @@
 
     async function fillAll() {
         const container = getActiveContainer(); 
-        if (container === undefined) return;
+        if (!container) return;
         let increment = 0;
         for (const c in container.children) {
             if (Object.hasOwnProperty.call(container.children, c)) {
@@ -82,7 +85,7 @@
 
     async function getItemData() {
         console.log("CuteTools: Fetching item data.");
-        const response = await fetch(`https://api.torn.com/torn/?selections=items&key=${key}&comment=CuteTools`);
+        const response = await fetch(`https://api.torn.com/torn/?selections=items&key=${getKey()}&comment=CuteTools`);
         const json = await response.json();
         itemData = json.items;
     }
@@ -111,7 +114,7 @@
 
     async function getLowestBazaar(id, name) {
         console.log("CuteTools: Fetching lowest bazaar for: " + name);
-        const response = await fetch(`https://api.torn.com/market/${id}?selections=bazaar&key=${key}&comment=CuteTools`);
+        const response = await fetch(`https://api.torn.com/market/${id}?selections=bazaar&key=${getKey()}&comment=CuteTools`);
         const json = await response.json();
         return json.bazaar[0].cost;
     }
@@ -145,9 +148,18 @@
         addElements();
     }
 
-    new MutationObserver(entries => {
+    addEventListener("hashchange", () => {
+        if (button) {
+            button.remove();
+            button = null;
+        }
         addElements();
-    }).observe(document.querySelector("html body#body.d.body.webp-support.r.regular.with-sidebar.dark-mode div.content.responsive-sidebar-container.logged-in div#mainContainer.container div.content-wrapper.autumn div#bazaarRoot div.core-layout___uf3LW"), 
-    {childList: true});
+    })
 
+    // new MutationObserver(entries => {
+    //     addElements();
+    // }).observe(document.querySelector("html body#body.d.body.webp-support.r.regular.with-sidebar.dark-mode div.content.responsive-sidebar-container.logged-in div#mainContainer.container div.content-wrapper.autumn div#bazaarRoot div.core-layout___uf3LW"), 
+    // {childList: true});
+
+    main();
 })();

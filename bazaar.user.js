@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cute's Bazaar Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  Cute's Bazaar Helper
 // @author       Cute [2068379]
 // @match        https://www.torn.com/bazaar.php*
@@ -54,33 +54,67 @@
         }, 100);
     }
 
-    function getActiveContainer() {
-        if (!document.querySelector("div.category-wrap:nth-child(1)")) return;
-        const itemContainers = document.querySelector("div.category-wrap:nth-child(1)").children;
-        for (const c in itemContainers) {
-            if (Object.hasOwnProperty.call(itemContainers, c)) {
-                const container = itemContainers[c];
-                if (container.style.display === "block") return container;
+    async function fillAll() {
+        let increment = 0;
+
+        console.log(document.querySelectorAll(".input-money").length);
+        document.querySelectorAll(".input-money").forEach((element) => {
+            if (!element.offsetParent) return;
+
+            let fillElement;
+            let itemName;
+            let itemAmount;
+            let itemID;
+            let value;
+            let bazaar;
+
+            switch (location.hash) {
+                case "#/manage":
+                    fillElement = element.closest('[class^="row"]');
+                    break;
+
+                case "#/add":
+                    fillElement = element.closest('.clearfix:not(.actions-main-wrap)');
+                    itemAmount = fillElement.querySelector("span:nth-child(2)");
+
+                    const qtyInput = fillElement.querySelector("input.clear-all");
+
+                    const checkbox = fillElement.querySelector("input[type=checkbox]");
+
+                    if (!checkbox && itemAmount) {
+                        qtyInput.value = itemAmount.textContent;
+                    } else if (!checkbox && !itemAmount) {
+                        qtyInput.value = 1;
+                    }
+
+                    if (checkbox && !checkbox.checked) checkbox.click();
+                    if (qtyInput) qtyInput.dispatchEvent(new Event("keyup", {bubbles: true}))
+                    break;
+            
+                default:
+                    break;
             }
-        }
+
+            setTimeout(async () => {
+                const priceInput = fillElement.querySelector("input.input-money");
+    
+                itemName = fillElement.querySelector("img").alt;
+                itemID = getIDFromName(itemName);
+                bazaar = await getLowestBazaar(itemID, itemName);
+                value = getTornValueFromName(itemName);
+
+                priceInput.value = priceCalc(bazaar, value);
+                priceInput.dispatchEvent(new Event("input", {bubbles: true}))
+            }, increment * 1000);
+            increment++;
+        })
+
+        return;
     }
 
-    async function fillAll() {
-        const container = getActiveContainer(); 
-        if (!container) return;
-        let increment = 0;
-        for (const c in container.children) {
-            if (Object.hasOwnProperty.call(container.children, c)) {
-                const child = container.children[c];
-                if (child.className === "clearfix no-mods") {
-                    setTimeout(() => {
-                        fill(child)
-                    }, increment * 1000);
-                    increment++
-                    // break;
-                }
-            }
-        }
+    function priceCalc(bazaar, value) {
+        if (bazaar < value * .95) return value;
+        return bazaar - 1;
     }
 
     async function getItemData() {
@@ -119,30 +153,6 @@
         return json.bazaar[0].cost;
     }
 
-    async function fill(child) {
-        const itemName = child.querySelector("div.title-wrap > div.name-wrap.bold > span.t-overflow").textContent;
-        const itemAmount = child.querySelector("div.title-wrap > div.name-wrap.bold > span.t-hide > span:nth-child(2)");
-        const itemID = getIDFromName(itemName);
-        const value = getTornValueFromName(itemName);
-        const bazaar = await getLowestBazaar(itemID, itemName);
-
-        const qtyInput = child.querySelector("div.actions-main-wrap.clearfix div.amount-main-wrap div.amount input.clear-all");
-
-        let priceInput = child.querySelector("div.amount-main-wrap div.price div.input-money-group.success input.clear-all.input-money");
-        if (priceInput === null) priceInput = child.querySelector("div.actions-main-wrap.clearfix div.amount-main-wrap div.price div.input-money-group input.clear-all.input-money");
-
-        priceInput.value = bazaar - 1;
-
-        if (itemAmount) {
-            qtyInput.value = itemAmount.textContent;
-        } else {
-            qtyInput.value = 1;
-        }
-
-        qtyInput.dispatchEvent(new Event("keyup", {bubbles: true}))
-        priceInput.dispatchEvent(new Event("input", {bubbles: true}))
-    }
-
     async function main() {
         getItemData();
         addElements();
@@ -155,11 +165,6 @@
         }
         addElements();
     })
-
-    // new MutationObserver(entries => {
-    //     addElements();
-    // }).observe(document.querySelector("html body#body.d.body.webp-support.r.regular.with-sidebar.dark-mode div.content.responsive-sidebar-container.logged-in div#mainContainer.container div.content-wrapper.autumn div#bazaarRoot div.core-layout___uf3LW"), 
-    // {childList: true});
 
     main();
 })();

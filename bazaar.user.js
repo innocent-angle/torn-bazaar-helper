@@ -120,7 +120,7 @@
     async function updateItemData() {
         if (localStorage.getItem("ct-item-data")) {
             itemData = JSON.parse(localStorage.getItem("ct-item-data"));
-            if (itemData.lastUpdatedDay && new Date().getDate() == itemData.lastUpdatedDay) return;
+            if (itemData.lastUpdatedDay && new Date().getUTCDate() == itemData.lastUpdatedDay) return;
         }
 
         try {
@@ -133,7 +133,7 @@
         }
 
         itemData = {
-            lastUpdatedDay: new Date().getDate(),
+            lastUpdatedDay: new Date().getUTCDate(),
             data: json.items
         }
 

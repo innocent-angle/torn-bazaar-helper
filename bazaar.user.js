@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cute's Bazaar Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4
 // @description  Cute's Bazaar Helper
 // @author       Cute [2068379]
 // @match        https://www.torn.com/bazaar.php*
@@ -12,24 +12,24 @@
 // ==/UserScript==
 
 (async() => {
+
     let itemData;
-    let button;
 
     function askForKey() {
         const input = prompt("Torn Key");
         if (input && input.length == 16) {
-            return localStorage.setItem("CuteToolsBazaarKey", input) 
+            return localStorage.setItem("ct-bazaar-key", input) 
         } else {
             return alert("Invalid Key");
         }
     }
 
     function getKey() {
-        return localStorage.getItem("CuteToolsBazaarKey");
+        return localStorage.getItem("ct-bazaar-key");
     }
 
     function addElements() {
-        if (button) return;
+        if (document.querySelector("#ct-autofill-button")) return;
         
         const loadInterval = setInterval(() => {
             if (document.querySelector("#bazaarRoot") !== null) {
@@ -37,14 +37,16 @@
                 
                 console.log("CuteTools: Creating elements.");
 
-                button = document.createElement("a")
+                const button = document.createElement("a")
                 button.innerText = "AutoFill";
                 button.className = "linkContainer___X16y4";
+                button.id = "ct-autofill-button";
                 button.style.color = "#8dba06";
                 button.style.fontWeight = 700;
                 button.style.marginLeft = "5px";
                 button.addEventListener("click", () => {
                     if (getKey() == null) return askForKey();
+                    updateItemData();
                     fillAll();
                 })
                 
@@ -57,7 +59,6 @@
     async function fillAll() {
         let increment = 0;
 
-        console.log(document.querySelectorAll(".input-money").length);
         document.querySelectorAll(".input-money").forEach((element) => {
             if (!element.offsetParent) return;
 
@@ -78,7 +79,6 @@
                     itemAmount = fillElement.querySelector("span:nth-child(2)");
 
                     const qtyInput = fillElement.querySelector("input.clear-all");
-
                     const checkbox = fillElement.querySelector("input[type=checkbox]");
 
                     if (!checkbox && itemAmount) {
@@ -113,21 +113,37 @@
     }
 
     function priceCalc(bazaar, value) {
-        if (bazaar < value * .95) return value;
+        if (!bazaar || bazaar < value * .97) return value;
         return bazaar - 1;
     }
 
-    async function getItemData() {
-        console.log("CuteTools: Fetching item data.");
-        const response = await fetch(`https://api.torn.com/torn/?selections=items&key=${getKey()}&comment=CuteTools`);
-        const json = await response.json();
-        itemData = json.items;
+    async function updateItemData() {
+        if (localStorage.getItem("ct-item-data")) {
+            itemData = JSON.parse(localStorage.getItem("ct-item-data"));
+            if (itemData.lastUpdatedDay && new Date().getDate() == itemData.lastUpdatedDay) return;
+        }
+
+        try {
+            console.log("CuteTools: Fetching item data.");
+            const response = await fetch(`https://api.torn.com/torn/?selections=items&key=${getKey()}&comment=CuteTools`);
+            const json = await response.json();
+        } catch (e) {
+            console.log("CuteTools: Failed to fetch item data.")
+            return;
+        }
+
+        itemData = {
+            lastUpdatedDay: new Date().getDate(),
+            data: json.items
+        }
+
+        localStorage.setItem("ct-item-data", JSON.stringify(itemData));
     }
 
     function getIDFromName(name) {
-        for (const i in itemData) {
-            if (Object.hasOwnProperty.call(itemData, i)) {
-                const item = itemData[i];
+        for (const i in itemData.data) {
+            if (Object.hasOwnProperty.call(itemData.data, i)) {
+                const item = itemData.data[i];
                 if (item.name == name) {
                     return i;
                 }
@@ -136,9 +152,9 @@
     }
 
     function getTornValueFromName(name) {
-        for (const i in itemData) {
-            if (Object.hasOwnProperty.call(itemData, i)) {
-                const item = itemData[i];
+        for (const i in itemData.data) {
+            if (Object.hasOwnProperty.call(itemData.data, i)) {
+                const item = itemData.data[i];
                 if (item.name == name) {
                     return item.market_value;
                 }
@@ -147,14 +163,18 @@
     }
 
     async function getLowestBazaar(id, name) {
-        console.log("CuteTools: Fetching lowest bazaar for: " + name);
-        const response = await fetch(`https://api.torn.com/market/${id}?selections=bazaar&key=${getKey()}&comment=CuteTools`);
-        const json = await response.json();
-        return json.bazaar[0].cost;
+        try {
+            console.log("CuteTools: Fetching lowest bazaar for: " + name);
+            const response = await fetch(`https://api.torn.com/market/${id}?selections=bazaar&key=${getKey()}&comment=CuteTools`);
+            const json = await response.json();
+            return json.bazaar[0].cost;
+        } catch (e) {
+            console.log("CuteTools: Failed to fetch bazaar data for: " + name);
+            return null;
+        }
     }
 
     async function main() {
-        getItemData();
         addElements();
     }
 

@@ -30,7 +30,10 @@
 
     function addElements() {
         if (document.querySelector("#ct-autofill-button")) return;
+        if (location.hash != "#/add" && location.hash != "#/manage") return;
         
+        const intervalStart = Date.now();
+
         const loadInterval = setInterval(() => {
             if (document.querySelector("#bazaarRoot") !== null) {
                 clearInterval(loadInterval);
@@ -53,10 +56,14 @@
                 document.querySelector(".titleContainer___QrlWP")
                 .append(button);
             }
-        }, 100);
+            
+            if ((Date.now() - intervalStart) > 5000) clearInterval(loadInterval);
+        }, 50);
     }
 
     async function fillAll() {
+        if (!itemData) return console.log("CuteTools: No item data found, cancelling.");
+
         let increment = 0;
 
         document.querySelectorAll(".input-money").forEach((element) => {
@@ -103,8 +110,14 @@
                 bazaar = await getLowestBazaar(itemID, itemName);
                 value = getTornValueFromName(itemName);
 
-                priceInput.value = priceCalc(bazaar, value);
-                priceInput.dispatchEvent(new Event("input", {bubbles: true}))
+                const oldPrice = parseInt(priceInput.value.replaceAll(",", ""));
+                const newPrice = priceCalc(bazaar, value);
+
+                if (oldPrice != newPrice) {
+                    console.log(`CuteTools: ${itemName}: ${oldPrice.toLocaleString()} -> ${newPrice.toLocaleString()} (${Math.round(newPrice / oldPrice * 100)}%)`)
+                    priceInput.value = priceCalc(bazaar, value);
+                    priceInput.dispatchEvent(new Event("input", {bubbles: true}))
+                }
             }, increment * 1000);
             increment++;
         })
@@ -113,31 +126,31 @@
     }
 
     function priceCalc(bazaar, value) {
-        if (!bazaar || bazaar < value * .97) return value;
+        if (!bazaar || bazaar < value * .90) return value;
         return bazaar - 1;
     }
 
     async function updateItemData() {
-        if (localStorage.getItem("ct-item-data")) {
-            itemData = JSON.parse(localStorage.getItem("ct-item-data"));
-            if (itemData.lastUpdatedDay && new Date().getUTCDate() == itemData.lastUpdatedDay) return;
-        }
+        let itemDataCache = localStorage.getItem("ct-item-data");
+        if (itemDataCache) {
+            itemDataCache = JSON.parse(localStorage.getItem("ct-item-data"));
+            if (itemDataCache.lastUpdatedDay && new Date().getUTCDate() == itemDataCache.lastUpdatedDay) return itemData = itemDataCache;
+            
+            try {
+                console.log("CuteTools: Fetching item data.");
+                const response = await fetch(`https://api.torn.com/torn/?selections=items&key=${getKey()}&comment=CuteTools`);
+                const json = await response.json();
 
-        try {
-            console.log("CuteTools: Fetching item data.");
-            const response = await fetch(`https://api.torn.com/torn/?selections=items&key=${getKey()}&comment=CuteTools`);
-            const json = await response.json();
-        } catch (e) {
-            console.log("CuteTools: Failed to fetch item data.")
-            return;
-        }
+                itemData = {
+                    lastUpdatedDay: new Date().getUTCDate(),
+                    data: json.items
+                }
 
-        itemData = {
-            lastUpdatedDay: new Date().getUTCDate(),
-            data: json.items
+                localStorage.setItem("ct-item-data", JSON.stringify(itemData));
+            } catch (e) {
+                console.log("CuteTools: Failed to fetch item data.")
+            }
         }
-
-        localStorage.setItem("ct-item-data", JSON.stringify(itemData));
     }
 
     function getIDFromName(name) {
@@ -178,11 +191,8 @@
         addElements();
     }
 
+    // TODO: replace with mutation observer
     addEventListener("hashchange", () => {
-        if (button) {
-            button.remove();
-            button = null;
-        }
         addElements();
     })
 

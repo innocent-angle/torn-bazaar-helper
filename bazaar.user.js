@@ -1,31 +1,31 @@
 // ==UserScript==
 // @name         Cute's Bazaar Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.4
+// @version      1.5
 // @description  Cute's Bazaar Helper
 // @author       Cute [2068379]
 // @match        https://www.torn.com/bazaar.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=torn.com
 // @updateURL    https://github.com/innocent-angle/torn-bazaar-helper/raw/main/bazaar.user.js
 // @downloadURL  https://github.com/innocent-angle/torn-bazaar-helper/raw/main/bazaar.user.js
-// @grant        none
+// @grant        GM_setValue
+// @grant        GM_getValue
 // ==/UserScript==
 
 (async() => {
-
     let itemData;
 
     function askForKey() {
         const input = prompt("Torn Key");
         if (input && input.length == 16) {
-            return localStorage.setItem("ct-bazaar-key", input) 
+            return GM_setValue("ct-bazaar-key", input)
         } else {
             return alert("Invalid Key");
         }
     }
 
     function getKey() {
-        return localStorage.getItem("ct-bazaar-key");
+        return GM_getValue("ct-bazaar-key", null);
     }
 
     function addElements() {
@@ -40,16 +40,16 @@
                 
                 console.log("CuteTools: Creating elements.");
 
-                const button = document.createElement("a")
+                const button = document.createElement("a");
                 button.innerText = "AutoFill";
                 button.className = "linkContainer___X16y4";
                 button.id = "ct-autofill-button";
                 button.style.color = "#8dba06";
                 button.style.fontWeight = 700;
                 button.style.marginLeft = "5px";
-                button.addEventListener("click", () => {
+                button.addEventListener("click", async () => {
                     if (getKey() == null) return askForKey();
-                    updateItemData();
+                    await updateItemData();
                     fillAll();
                 })
                 
@@ -131,11 +131,11 @@
     }
 
     async function updateItemData() {
-        let itemDataCache = localStorage.getItem("ct-item-data");
+        let itemDataCache = GM_getValue("ct-item-data", null);
         if (itemDataCache) {
-            itemDataCache = JSON.parse(localStorage.getItem("ct-item-data"));
+            itemDataCache = JSON.parse(itemDataCache);
             if (itemDataCache.lastUpdatedDay && new Date().getUTCDate() == itemDataCache.lastUpdatedDay) return itemData = itemDataCache;
-            
+        } else {
             try {
                 console.log("CuteTools: Fetching item data.");
                 const response = await fetch(`https://api.torn.com/torn/?selections=items&key=${getKey()}&comment=CuteTools`);
@@ -146,11 +146,12 @@
                     data: json.items
                 }
 
-                localStorage.setItem("ct-item-data", JSON.stringify(itemData));
+                GM_setValue("ct-item-data", JSON.stringify(itemData));
             } catch (e) {
-                console.log("CuteTools: Failed to fetch item data.")
+                console.log("CuteTools: Failed to fetch item data.", e)
             }
         }
+        console.log("CuteTools: Done fetching item data.");
     }
 
     function getIDFromName(name) {

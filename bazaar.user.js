@@ -31,34 +31,24 @@
     function addElements() {
         if (document.querySelector("#ct-autofill-button")) return;
         if (location.hash != "#/add" && location.hash != "#/manage") return;
+
+        console.log("CuteTools: Creating elements.");
+
+        const button = document.createElement("a");
+        button.innerText = "AutoFill";
+        button.className = "linkContainer___X16y4";
+        button.id = "ct-autofill-button";
+        button.style.color = "#8dba06";
+        button.style.fontWeight = 700;
+        button.style.marginLeft = "5px";
+        button.addEventListener("click", async () => {
+            if (getKey() == null) return askForKey();
+            await updateItemData();
+            fillAll();
+        })
         
-        const intervalStart = Date.now();
-
-        const loadInterval = setInterval(() => {
-            if (document.querySelector("#bazaarRoot") !== null) {
-                clearInterval(loadInterval);
-                
-                console.log("CuteTools: Creating elements.");
-
-                const button = document.createElement("a");
-                button.innerText = "AutoFill";
-                button.className = "linkContainer___X16y4";
-                button.id = "ct-autofill-button";
-                button.style.color = "#8dba06";
-                button.style.fontWeight = 700;
-                button.style.marginLeft = "5px";
-                button.addEventListener("click", async () => {
-                    if (getKey() == null) return askForKey();
-                    await updateItemData();
-                    fillAll();
-                })
-                
-                document.querySelector(".titleContainer___QrlWP")
-                .append(button);
-            }
-            
-            if ((Date.now() - intervalStart) > 5000) clearInterval(loadInterval);
-        }, 50);
+        document.querySelector(".titleContainer___QrlWP")
+        .append(button);
     }
 
     async function fillAll() {
@@ -188,14 +178,12 @@
         }
     }
 
-    async function main() {
-        addElements();
-    }
-
-    // TODO: replace with mutation observer
-    addEventListener("hashchange", () => {
-        addElements();
-    })
-
-    main();
+    new MutationObserver(() => {
+        if (document.querySelector("#bazaarRoot") && !document.querySelector("#ct-autofill-button")) {
+            addElements();
+        }
+    }).observe(document.body, {
+        childList: true,
+        subtree: true
+    });
 })();

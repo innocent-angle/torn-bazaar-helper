@@ -125,21 +125,21 @@
         if (itemDataCache) {
             itemDataCache = JSON.parse(itemDataCache);
             if (itemDataCache.lastUpdatedDay && new Date().getUTCDate() == itemDataCache.lastUpdatedDay) return itemData = itemDataCache;
-        } else {
-            try {
-                console.log("CuteTools: Fetching item data.");
-                const response = await fetch(`https://api.torn.com/torn/?selections=items&key=${getKey()}&comment=CuteTools`);
-                const json = await response.json();
+        }
 
-                itemData = {
-                    lastUpdatedDay: new Date().getUTCDate(),
-                    data: json.items
-                }
+        try {
+            console.log("CuteTools: Fetching item data.");
+            const response = await fetch(`https://api.torn.com/torn/?selections=items&key=${getKey()}&comment=CuteTools`);
+            const json = await response.json();
 
-                GM_setValue("ct-item-data", JSON.stringify(itemData));
-            } catch (e) {
-                console.log("CuteTools: Failed to fetch item data.", e)
+            itemData = {
+                lastUpdatedDay: new Date().getUTCDate(),
+                data: json.items
             }
+
+            GM_setValue("ct-item-data", JSON.stringify(itemData));
+        } catch (e) {
+            console.log("CuteTools: Failed to fetch item data.", e)
         }
         console.log("CuteTools: Done fetching item data.");
     }

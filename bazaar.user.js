@@ -126,7 +126,7 @@
 	}
 
 	function priceCalc(bazaar, value) {
-		if (!bazaar || bazaar < value * 0.9) return value;
+		if (!bazaar || bazaar < value * 0.95) return value;
 		return bazaar - 1;
 	}
 
